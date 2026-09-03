@@ -17,8 +17,26 @@ import webbrowser
 import pyautogui
 import ssl
 
+import ctypes
+
 # Tắt tính năng tự động ngắt của pyautogui khi rê chuột vào góc màn hình
 pyautogui.FAILSAFE = False
+
+def make_click_through(win):
+    try:
+        win.update_idletasks()
+        hwnd = win.winfo_id()
+        # Lấy Handle cửa sổ thật trên Windows
+        parent_hwnd = ctypes.windll.user32.GetParent(hwnd)
+        if parent_hwnd:
+            hwnd = parent_hwnd
+        GWL_EXSTYLE = -20
+        WS_EX_TRANSPARENT = 0x00000020
+        WS_EX_LAYERED = 0x00080000
+        style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+        ctypes.windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style | WS_EX_TRANSPARENT | WS_EX_LAYERED)
+    except Exception:
+        pass
 
 class AutoClickerApp:
     def __init__(self, root):
@@ -308,10 +326,14 @@ class AutoClickerApp:
             win.overrideredirect(True)
             win.attributes('-topmost', True)
             win.attributes('-alpha', 0.85)
-            win.geometry(f"32x32+{x-16}+{y-16}")
+            # Đặt bong bóng lệch lên góc trên bên phải (x+5, y-28) để KHÔNG bị đè/cản trở điểm click chính chính xác (x, y)
+            win.geometry(f"28x28+{x+5}+{y-28}")
             
-            lbl = tk.Label(win, text=f"{num}", bg="#FF3D00", fg="white", font=("Arial", 11, "bold"), bd=2, relief="solid")
+            lbl = tk.Label(win, text=f"{num}", bg="#FF3D00", fg="white", font=("Arial", 10, "bold"), bd=1, relief="solid")
             lbl.pack(fill=tk.BOTH, expand=True)
+            
+            # Cấu hình xuyên thấu click trên Windows
+            make_click_through(win)
             return win
         except Exception:
             return None
@@ -925,9 +947,14 @@ class AutoClickerApp:
             for index, task in enumerate(self.tasks):
                 if task['status'] == "Chờ":
                     if now >= task['target_dt']:
+                        # Ẩn bong bóng tạm thời để đảm bảo click lọt xuống cửa sổ web/ứng dụng bên dưới 100%
+                        self.root.after(0, self.clear_markers)
+                        time.sleep(0.05)
                         pyautogui.click(x=task['x'], y=task['y'])
                         task['status'] = "Đã click"
                         self.root.after(0, self.update_task_status_ui, index, "Đã click")
+                        time.sleep(0.1)
+                        self.root.after(0, self.refresh_markers)
                         
             if popup_img and os.path.exists(popup_img):
                 try:
