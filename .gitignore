@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+config.json
+test_fast_out.txt
+.vscode/
+.idea/

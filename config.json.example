@@ -1,0 +1,6 @@
+{
+  "api_key": "YOUR_API_KEY_HERE",
+  "roi": [16, 229, 1727, 132],
+  "interval": 300,
+  "use_ai": true
+}
