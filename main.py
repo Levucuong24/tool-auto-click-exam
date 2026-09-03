@@ -251,43 +251,59 @@ class AutoClickerApp:
     def setup_tab1(self):
         self.marker_windows = []
         self.show_markers_var = tk.BooleanVar(value=True)
+        self.time_mode_var = tk.StringVar(value="duration")
 
-        frame_top = tk.LabelFrame(self.tab1, text="1. Thêm vị trí và cài đặt Số", padx=10, pady=5)
+        frame_top = tk.LabelFrame(self.tab1, text="1. Thêm vị trí & Cài đặt thời gian cho từng Số", padx=10, pady=5)
         frame_top.pack(pady=5, padx=10, fill=tk.X)
+
+        frame_mode_select = tk.Frame(frame_top)
+        frame_mode_select.pack(fill=tk.X, pady=2)
         
-        tk.Label(frame_top, text="Giờ click (HH:MM:SS):", font=("Arial", 10)).grid(row=0, column=0, padx=5, pady=5)
-        self.entry_time = tk.Entry(frame_top, justify="center", font=("Arial", 10), width=12)
+        tk.Radiobutton(frame_mode_select, text="⏱️ Nhập thời lượng bài (Số Phút)", variable=self.time_mode_var, value="duration", command=self.toggle_tab1_mode_ui, font=("Arial", 9, "bold")).pack(side=tk.LEFT, padx=5)
+        tk.Radiobutton(frame_mode_select, text="🕒 Nhập mốc giờ cố định (HH:MM:SS)", variable=self.time_mode_var, value="clock", command=self.toggle_tab1_mode_ui, font=("Arial", 9)).pack(side=tk.LEFT, padx=5)
+
+        self.frame_input_inputs = tk.Frame(frame_top)
+        self.frame_input_inputs.pack(fill=tk.X, pady=5)
+
+        self.lbl_time_input = tk.Label(self.frame_input_inputs, text="Thời lượng bài (Phút):", font=("Arial", 10))
+        self.lbl_time_input.pack(side=tk.LEFT, padx=5)
         
+        self.entry_duration = tk.Entry(self.frame_input_inputs, justify="center", font=("Arial", 10), width=10)
+        self.entry_duration.insert(0, "45")
+        self.entry_duration.pack(side=tk.LEFT, padx=5)
+
+        self.entry_time = tk.Entry(self.frame_input_inputs, justify="center", font=("Arial", 10), width=12)
         now = datetime.now()
         example_time = f"{now.hour:02d}:{(now.minute + 1) % 60:02d}:00"
         self.entry_time.insert(0, example_time)
-        self.entry_time.grid(row=0, column=1, padx=5, pady=5)
-        
-        self.btn_hook = tk.Button(frame_top, text="📍 Bấm F8 để gán vị trí Số", command=self.start_hook, bg="#2196F3", fg="white", font=("Arial", 9, "bold"))
-        self.btn_hook.grid(row=0, column=2, padx=5, pady=5)
+
+        self.btn_hook = tk.Button(self.frame_input_inputs, text="📍 Bấm F8 để gán vị trí Số", command=self.start_hook, bg="#2196F3", fg="white", font=("Arial", 9, "bold"))
+        self.btn_hook.pack(side=tk.LEFT, padx=10)
 
         # Marker display toggle
-        tk.Checkbutton(frame_top, text="👁️ Hiện bong bóng Số [1], [2], [3] trên màn hình", variable=self.show_markers_var, command=self.refresh_markers, font=("Arial", 9, "bold"), fg="#D32F2F").grid(row=1, column=0, columnspan=3, sticky="w", padx=5)
+        tk.Checkbutton(frame_top, text="👁️ Hiện bong bóng Số [1], [2], [3] trên màn hình", variable=self.show_markers_var, command=self.refresh_markers, font=("Arial", 9, "bold"), fg="#D32F2F").pack(anchor=tk.W, padx=5, pady=2)
 
         frame_list = tk.LabelFrame(self.tab1, text="2. Danh sách các vị trí Số đã cài đặt", padx=5, pady=5)
         frame_list.pack(pady=5, padx=10, fill=tk.BOTH, expand=True)
         
-        columns = ("check", "id", "time", "x", "y", "status")
+        columns = ("check", "id", "duration", "time", "x", "y", "status")
         self.tree = ttk.Treeview(frame_list, columns=columns, show="headings", height=7)
         
         self.tree.heading("check", text="Chọn")
         self.tree.heading("id", text="Số TT")
-        self.tree.heading("time", text="Thời gian Click")
+        self.tree.heading("duration", text="Thời lượng")
+        self.tree.heading("time", text="Giờ Click dự kiến")
         self.tree.heading("x", text="Tọa độ X")
         self.tree.heading("y", text="Tọa độ Y")
         self.tree.heading("status", text="Trạng thái")
         
-        self.tree.column("check", width=45, anchor=tk.CENTER)
-        self.tree.column("id", width=55, anchor=tk.CENTER)
+        self.tree.column("check", width=40, anchor=tk.CENTER)
+        self.tree.column("id", width=50, anchor=tk.CENTER)
+        self.tree.column("duration", width=80, anchor=tk.CENTER)
         self.tree.column("time", width=110, anchor=tk.CENTER)
-        self.tree.column("x", width=75, anchor=tk.CENTER)
-        self.tree.column("y", width=75, anchor=tk.CENTER)
-        self.tree.column("status", width=95, anchor=tk.CENTER)
+        self.tree.column("x", width=65, anchor=tk.CENTER)
+        self.tree.column("y", width=65, anchor=tk.CENTER)
+        self.tree.column("status", width=110, anchor=tk.CENTER)
         
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.tree.bind("<ButtonRelease-1>", self.on_tree_click)
@@ -320,16 +336,27 @@ class AutoClickerApp:
         self.btn_stop = tk.Button(frame_btn, text="⏹ Dừng", command=self.stop_timer, bg="#f44336", fg="white", state=tk.DISABLED, width=12, font=("Arial", 10, "bold"))
         self.btn_stop.pack(side=tk.LEFT, padx=10)
 
+    def toggle_tab1_mode_ui(self):
+        mode = self.time_mode_var.get()
+        if mode == "duration":
+            self.lbl_time_input.config(text="Thời lượng bài (Phút):")
+            self.entry_time.pack_forget()
+            self.entry_duration.pack(side=tk.LEFT, padx=5, before=self.btn_hook)
+        else:
+            self.lbl_time_input.config(text="Mốc giờ click (HH:MM:SS):")
+            self.entry_duration.pack_forget()
+            self.entry_time.pack(side=tk.LEFT, padx=5, before=self.btn_hook)
+
     def create_marker_overlay(self, num, x, y):
         try:
             win = tk.Toplevel(self.root)
             win.overrideredirect(True)
             win.attributes('-topmost', True)
-            win.attributes('-alpha', 0.85)
-            # Đặt bong bóng lệch lên góc trên bên phải (x+5, y-28) để KHÔNG bị đè/cản trở điểm click chính chính xác (x, y)
-            win.geometry(f"28x28+{x+5}+{y-28}")
+            win.attributes('-alpha', 0.88)
+            # Tự động định kích thước ô bóng bóng chứa Số
+            win.geometry(f"+{x+5}+{y-28}")
             
-            lbl = tk.Label(win, text=f"{num}", bg="#FF3D00", fg="white", font=("Arial", 10, "bold"), bd=1, relief="solid")
+            lbl = tk.Label(win, text=f" #{num} ", bg="#FF3D00", fg="white", font=("Arial", 10, "bold"), bd=1, relief="solid")
             lbl.pack(fill=tk.BOTH, expand=True)
             
             # Cấu hình xuyên thấu click trên Windows
@@ -840,32 +867,55 @@ class AutoClickerApp:
                     self.tree.item(item, values=values)
         
     def start_hook(self):
-        target_time_str = self.entry_time.get().strip()
-        try:
-            datetime.strptime(target_time_str, "%H:%M:%S")
-        except ValueError:
-            messagebox.showerror("Lỗi", "Sai định dạng thời gian.\nVui lòng nhập theo định dạng HH:MM:SS (ví dụ: 15:30:00)")
-            return
+        mode = self.time_mode_var.get()
+        val_str = ""
+        if mode == "duration":
+            val_str = self.entry_duration.get().strip()
+            try:
+                mins = float(val_str)
+                if mins <= 0: raise ValueError()
+            except ValueError:
+                messagebox.showerror("Lỗi", "Số phút học phải là số lớn hơn 0 (ví dụ: 45 hoặc 30.5)!")
+                return
+        else:
+            val_str = self.entry_time.get().strip()
+            try:
+                datetime.strptime(val_str, "%H:%M:%S")
+            except ValueError:
+                messagebox.showerror("Lỗi", "Sai định dạng thời gian.\nVui lòng nhập theo định dạng HH:MM:SS (ví dụ: 15:30:00)")
+                return
             
         self.btn_hook.config(text="Đang chờ bấm F8...", state=tk.DISABLED)
-        threading.Thread(target=self.wait_for_hotkey, args=(target_time_str,), daemon=True).start()
+        threading.Thread(target=self.wait_for_hotkey, args=(mode, val_str), daemon=True).start()
         
-    def wait_for_hotkey(self, target_time_str):
+    def wait_for_hotkey(self, mode, val_str):
         keyboard.wait("F8")
         x, y = pyautogui.position()
-        self.root.after(0, self.add_task_to_ui, target_time_str, x, y)
+        self.root.after(0, self.add_task_to_ui, mode, val_str, x, y)
         
-    def add_task_to_ui(self, time_str, x, y):
+    def add_task_to_ui(self, mode, val_str, x, y):
         self.task_counter += 1
+        if mode == "duration":
+            mins = float(val_str)
+            duration_text = f"{mins:g} phút"
+            time_text = "Tự cộng dồn"
+        else:
+            mins = 0
+            duration_text = "--"
+            time_text = val_str
+
         task = {
             'id': self.task_counter,
-            'time': time_str,
+            'mode': mode,
+            'duration_mins': mins,
+            'duration_text': duration_text,
+            'time': time_text,
             'x': x,
             'y': y,
             'status': "Chờ"
         }
         self.tasks.append(task)
-        self.tree.insert("", tk.END, values=("☐", task['id'], task['time'], task['x'], task['y'], task['status']))
+        self.tree.insert("", tk.END, values=("☐", task['id'], task['duration_text'], task['time'], task['x'], task['y'], task['status']))
         self.btn_hook.config(text="📍 Bấm F8 để gán vị trí Số", state=tk.NORMAL)
         self.refresh_markers()
         
@@ -895,7 +945,7 @@ class AutoClickerApp:
             self.tree.delete(item)
             
         for task in self.tasks:
-            self.tree.insert("", tk.END, values=("☐", task['id'], task['time'], task['x'], task['y'], task['status']))
+            self.tree.insert("", tk.END, values=("☐", task['id'], task['duration_text'], task['time'], task['x'], task['y'], task['status']))
             
         self.refresh_markers()
 
@@ -912,18 +962,30 @@ class AutoClickerApp:
             messagebox.showerror("Lỗi", "Vui lòng thêm ít nhất 1 tọa độ HOẶC 1 ảnh nút Đồng ý!")
             return
             
-        if self.tasks and all(t['status'] != "Chờ" for t in self.tasks) and not popup_img:
+        if self.tasks and all(t['status'] == "Đã click" for t in self.tasks) and not popup_img:
             messagebox.showinfo("Thông báo", "Tất cả các mốc thời gian đã được xử lý. Hãy thêm mới hoặc cập nhật!")
             return
             
         now = datetime.now()
-        for task in self.tasks:
-            if task['status'] == "Chờ":
-                t = datetime.strptime(task['time'], "%H:%M:%S")
-                target = now.replace(hour=t.hour, minute=t.minute, second=t.second, microsecond=0)
-                if target < now:
-                    target += timedelta(days=1)
-                task['target_dt'] = target
+        ref_time = now
+        for index, task in enumerate(self.tasks):
+            if task['status'] != "Đã click":
+                if task.get('mode') == 'duration':
+                    mins = task.get('duration_mins', 0)
+                    target = ref_time + timedelta(minutes=mins)
+                    task['target_dt'] = target
+                    ref_time = target
+                    task['time'] = target.strftime("%H:%M:%S")
+                else:
+                    t = datetime.strptime(task['time'], "%H:%M:%S")
+                    target = now.replace(hour=t.hour, minute=t.minute, second=t.second, microsecond=0)
+                    if target < now:
+                        target += timedelta(days=1)
+                    task['target_dt'] = target
+                    ref_time = target
+                # Cập nhật hiển thị giờ click dự kiến trên bảng
+                self.update_task_time_ui(index, task['time'])
+                task['status'] = "Chờ"
                 
         self.is_running_tab1 = True
         self.btn_start.config(state=tk.DISABLED)
@@ -945,8 +1007,9 @@ class AutoClickerApp:
         while self.is_running_tab1:
             now = datetime.now()
             for index, task in enumerate(self.tasks):
-                if task['status'] == "Chờ":
-                    if now >= task['target_dt']:
+                if task['status'] != "Đã click":
+                    rem_sec = (task['target_dt'] - now).total_seconds()
+                    if rem_sec <= 0 and task['status'] != "Đã click":
                         # Ẩn bong bóng tạm thời để đảm bảo click lọt xuống cửa sổ web/ứng dụng bên dưới 100%
                         self.root.after(0, self.clear_markers)
                         time.sleep(0.05)
@@ -955,31 +1018,48 @@ class AutoClickerApp:
                         self.root.after(0, self.update_task_status_ui, index, "Đã click")
                         time.sleep(0.1)
                         self.root.after(0, self.refresh_markers)
+                    elif task['status'] != "Đã click":
+                        rem_m = int(rem_sec // 60)
+                        rem_s = int(rem_sec % 60)
+                        if rem_m > 0:
+                            status_str = f"Còn {rem_m}m {rem_s:02d}s"
+                        else:
+                            status_str = f"Còn {rem_s:02d}s"
+                        self.root.after(0, self.update_task_status_ui, index, status_str)
                         
             if popup_img and os.path.exists(popup_img):
                 try:
                     popup_loc = pyautogui.locateCenterOnScreen(popup_img, confidence=0.8)
                     if popup_loc is not None:
                         pyautogui.click(popup_loc)
-                        time.sleep(1) # Chờ 1 chút để popup biến mất
+                        time.sleep(1)
                 except Exception:
                     pass
 
-            time.sleep(0.2)
+            time.sleep(0.5)
             
             if self.tasks:
-                all_finished = all(t['status'] != "Chờ" for t in self.tasks)
+                all_finished = all(t['status'] == "Đã click" for t in self.tasks)
                 if all_finished and not popup_img:
                     self.root.after(0, self.on_all_tasks_done)
                     break
+
+    def update_task_time_ui(self, index, new_time_str):
+        children = self.tree.get_children()
+        if index < len(children):
+            item = children[index]
+            values = list(self.tree.item(item, "values"))
+            values[3] = new_time_str
+            self.tree.item(item, values=values)
                 
     def update_task_status_ui(self, index, new_status):
         children = self.tree.get_children()
         if index < len(children):
             item = children[index]
             values = list(self.tree.item(item, "values"))
-            values[5] = new_status
-            self.tree.item(item, values=values)
+            if len(values) > 6:
+                values[6] = new_status
+                self.tree.item(item, values=values)
             
     def on_all_tasks_done(self):
         self.stop_timer()
