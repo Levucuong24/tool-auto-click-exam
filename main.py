@@ -231,39 +231,45 @@ class AutoClickerApp:
                     pass
 
     def setup_tab1(self):
-        frame_input = tk.Frame(self.tab1)
-        frame_input.pack(pady=10, padx=10, fill=tk.X)
+        self.marker_windows = []
+        self.show_markers_var = tk.BooleanVar(value=True)
+
+        frame_top = tk.LabelFrame(self.tab1, text="1. Thêm vị trí và cài đặt Số", padx=10, pady=5)
+        frame_top.pack(pady=5, padx=10, fill=tk.X)
         
-        tk.Label(frame_input, text="Thời gian (HH:MM:SS):", font=("Arial", 10)).grid(row=0, column=0, padx=5, pady=5)
-        self.entry_time = tk.Entry(frame_input, justify="center", font=("Arial", 10), width=15)
+        tk.Label(frame_top, text="Giờ click (HH:MM:SS):", font=("Arial", 10)).grid(row=0, column=0, padx=5, pady=5)
+        self.entry_time = tk.Entry(frame_top, justify="center", font=("Arial", 10), width=12)
         
         now = datetime.now()
         example_time = f"{now.hour:02d}:{(now.minute + 1) % 60:02d}:00"
         self.entry_time.insert(0, example_time)
         self.entry_time.grid(row=0, column=1, padx=5, pady=5)
         
-        self.btn_hook = tk.Button(frame_input, text="Lấy tọa độ (F8) & Thêm", command=self.start_hook, width=20)
+        self.btn_hook = tk.Button(frame_top, text="📍 Bấm F8 để gán vị trí Số", command=self.start_hook, bg="#2196F3", fg="white", font=("Arial", 9, "bold"))
         self.btn_hook.grid(row=0, column=2, padx=5, pady=5)
-        
-        frame_list = tk.Frame(self.tab1)
+
+        # Marker display toggle
+        tk.Checkbutton(frame_top, text="👁️ Hiện bong bóng Số [1], [2], [3] trên màn hình", variable=self.show_markers_var, command=self.refresh_markers, font=("Arial", 9, "bold"), fg="#D32F2F").grid(row=1, column=0, columnspan=3, sticky="w", padx=5)
+
+        frame_list = tk.LabelFrame(self.tab1, text="2. Danh sách các vị trí Số đã cài đặt", padx=5, pady=5)
         frame_list.pack(pady=5, padx=10, fill=tk.BOTH, expand=True)
         
         columns = ("check", "id", "time", "x", "y", "status")
-        self.tree = ttk.Treeview(frame_list, columns=columns, show="headings", height=8)
+        self.tree = ttk.Treeview(frame_list, columns=columns, show="headings", height=7)
         
         self.tree.heading("check", text="Chọn")
-        self.tree.heading("id", text="ID")
-        self.tree.heading("time", text="Thời gian")
+        self.tree.heading("id", text="Số TT")
+        self.tree.heading("time", text="Thời gian Click")
         self.tree.heading("x", text="Tọa độ X")
         self.tree.heading("y", text="Tọa độ Y")
         self.tree.heading("status", text="Trạng thái")
         
-        self.tree.column("check", width=50, anchor=tk.CENTER)
-        self.tree.column("id", width=40, anchor=tk.CENTER)
-        self.tree.column("time", width=100, anchor=tk.CENTER)
-        self.tree.column("x", width=80, anchor=tk.CENTER)
-        self.tree.column("y", width=80, anchor=tk.CENTER)
-        self.tree.column("status", width=100, anchor=tk.CENTER)
+        self.tree.column("check", width=45, anchor=tk.CENTER)
+        self.tree.column("id", width=55, anchor=tk.CENTER)
+        self.tree.column("time", width=110, anchor=tk.CENTER)
+        self.tree.column("x", width=75, anchor=tk.CENTER)
+        self.tree.column("y", width=75, anchor=tk.CENTER)
+        self.tree.column("status", width=95, anchor=tk.CENTER)
         
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.tree.bind("<ButtonRelease-1>", self.on_tree_click)
@@ -272,12 +278,16 @@ class AutoClickerApp:
         self.tree.configure(yscroll=scrollbar.set)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        self.btn_delete = tk.Button(self.tab1, text="Xóa các ô đã chọn (☑)", command=self.delete_selected_task)
-        self.btn_delete.pack(pady=5)
-        
+        frame_action_btn = tk.Frame(self.tab1)
+        frame_action_btn.pack(pady=3)
+        self.btn_delete = tk.Button(frame_action_btn, text="❌ Xóa ô đã chọn (☑)", command=self.delete_selected_task)
+        self.btn_delete.pack(side=tk.LEFT, padx=5)
+        self.btn_clear_all = tk.Button(frame_action_btn, text="🔄 Reset lại từ Số 1", command=self.reset_all_tasks)
+        self.btn_clear_all.pack(side=tk.LEFT, padx=5)
+
         # Thêm khung chọn ảnh popup
         frame_popup = tk.Frame(self.tab1)
-        frame_popup.pack(pady=5, padx=10, fill=tk.X)
+        frame_popup.pack(pady=3, padx=10, fill=tk.X)
         tk.Label(frame_popup, text="Ảnh nút Đồng ý (Auto click khi hiện):").pack(side=tk.LEFT)
         self.entry_popup = tk.Entry(frame_popup, width=25)
         self.entry_popup.pack(side=tk.LEFT, padx=5)
@@ -286,11 +296,41 @@ class AutoClickerApp:
         frame_btn = tk.Frame(self.tab1)
         frame_btn.pack(pady=10)
         
-        self.btn_start = tk.Button(frame_btn, text="Bắt đầu", command=self.start_timer, bg="#4CAF50", fg="white", width=10, font=("Arial", 10, "bold"))
+        self.btn_start = tk.Button(frame_btn, text="▶ Bắt đầu Hẹn giờ", command=self.start_timer, bg="#4CAF50", fg="white", width=15, font=("Arial", 10, "bold"))
         self.btn_start.pack(side=tk.LEFT, padx=10)
         
-        self.btn_stop = tk.Button(frame_btn, text="Dừng", command=self.stop_timer, bg="#f44336", fg="white", state=tk.DISABLED, width=10, font=("Arial", 10, "bold"))
+        self.btn_stop = tk.Button(frame_btn, text="⏹ Dừng", command=self.stop_timer, bg="#f44336", fg="white", state=tk.DISABLED, width=12, font=("Arial", 10, "bold"))
         self.btn_stop.pack(side=tk.LEFT, padx=10)
+
+    def create_marker_overlay(self, num, x, y):
+        try:
+            win = tk.Toplevel(self.root)
+            win.overrideredirect(True)
+            win.attributes('-topmost', True)
+            win.attributes('-alpha', 0.85)
+            win.geometry(f"32x32+{x-16}+{y-16}")
+            
+            lbl = tk.Label(win, text=f"{num}", bg="#FF3D00", fg="white", font=("Arial", 11, "bold"), bd=2, relief="solid")
+            lbl.pack(fill=tk.BOTH, expand=True)
+            return win
+        except Exception:
+            return None
+
+    def refresh_markers(self):
+        self.clear_markers()
+        if hasattr(self, 'show_markers_var') and self.show_markers_var.get():
+            for task in self.tasks:
+                win = self.create_marker_overlay(task['id'], task['x'], task['y'])
+                if win:
+                    self.marker_windows.append(win)
+
+    def clear_markers(self):
+        for win in getattr(self, 'marker_windows', []):
+            try:
+                win.destroy()
+            except Exception:
+                pass
+        self.marker_windows = []
 
     def setup_tab2(self):
         lbl_inst = tk.Label(self.tab2, text="Cắt sẵn các ảnh (Snipping Tool) và lưu vào máy tính.\n1. Ảnh điều kiện (VD: thanh 100%)\n2. Ảnh mục tiêu (VD: nút 'Bài tiếp' / Tích xanh / Icon bài)", justify=tk.LEFT, font=("Arial", 10))
@@ -804,7 +844,8 @@ class AutoClickerApp:
         }
         self.tasks.append(task)
         self.tree.insert("", tk.END, values=("☐", task['id'], task['time'], task['x'], task['y'], task['status']))
-        self.btn_hook.config(text="Lấy tọa độ (F8) & Thêm", state=tk.NORMAL)
+        self.btn_hook.config(text="📍 Bấm F8 để gán vị trí Số", state=tk.NORMAL)
+        self.refresh_markers()
         
     def delete_selected_task(self):
         items_to_delete = []
@@ -822,6 +863,26 @@ class AutoClickerApp:
             task_id = int(item_values[1])
             self.tasks = [t for t in self.tasks if t['id'] != task_id]
             self.tree.delete(item)
+
+        # Đánh lại số thứ tự 1, 2, 3...
+        self.task_counter = len(self.tasks)
+        for i, task in enumerate(self.tasks, start=1):
+            task['id'] = i
+            
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+            
+        for task in self.tasks:
+            self.tree.insert("", tk.END, values=("☐", task['id'], task['time'], task['x'], task['y'], task['status']))
+            
+        self.refresh_markers()
+
+    def reset_all_tasks(self):
+        self.tasks = []
+        self.task_counter = 0
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        self.refresh_markers()
 
     def start_timer(self):
         popup_img = self.entry_popup.get().strip()
