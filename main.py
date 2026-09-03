@@ -280,6 +280,15 @@ class AutoClickerApp:
         self.btn_hook = tk.Button(self.frame_input_inputs, text="📍 Bấm F8 để gán vị trí Số", command=self.start_hook, bg="#2196F3", fg="white", font=("Arial", 9, "bold"))
         self.btn_hook.pack(side=tk.LEFT, padx=10)
 
+        # Khung cài giờ bắt đầu chạy bài 1
+        self.frame_start_time = tk.Frame(frame_top)
+        self.frame_start_time.pack(fill=tk.X, pady=2)
+        
+        tk.Label(self.frame_start_time, text="⏰ Giờ bắt đầu chạy Số 1 (HH:MM:SS):", font=("Arial", 9, "bold")).pack(side=tk.LEFT, padx=5)
+        self.entry_start_time = tk.Entry(self.frame_start_time, justify="center", font=("Arial", 9), width=12)
+        self.entry_start_time.pack(side=tk.LEFT, padx=2)
+        tk.Label(self.frame_start_time, text="(Để trống = Bấm ▶ là chạy luôn)", font=("Arial", 8, "italic"), fg="gray").pack(side=tk.LEFT, padx=2)
+
         # Marker display toggle
         tk.Checkbutton(frame_top, text="👁️ Hiện bong bóng Số [1], [2], [3] trên màn hình", variable=self.show_markers_var, command=self.refresh_markers, font=("Arial", 9, "bold"), fg="#D32F2F").pack(anchor=tk.W, padx=5, pady=2)
 
@@ -967,7 +976,23 @@ class AutoClickerApp:
             return
             
         now = datetime.now()
+        start_time_str = self.entry_start_time.get().strip()
         ref_time = now
+        
+        if start_time_str:
+            try:
+                parts = start_time_str.split(':')
+                if len(parts) == 2:
+                    start_time_str += ":00"
+                parsed_time = datetime.strptime(start_time_str, "%H:%M:%S")
+                target_start = now.replace(hour=parsed_time.hour, minute=parsed_time.minute, second=parsed_time.second, microsecond=0)
+                if target_start < now - timedelta(seconds=60):
+                    target_start += timedelta(days=1)
+                ref_time = target_start
+            except ValueError:
+                messagebox.showerror("Lỗi", "Giờ bắt đầu không đúng định dạng HH:MM:SS (ví dụ 01:05:00 hoặc 13:05)!")
+                return
+
         for index, task in enumerate(self.tasks):
             if task['status'] != "Đã click":
                 if task.get('mode') == 'duration':
